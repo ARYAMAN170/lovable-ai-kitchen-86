@@ -11,7 +11,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const userName = user?.user_metadata?.name || 'Chef';
+  const userName = user?.name || 'Chef';
   const userEmail = user?.email || '';
 
   const handleSignOut = async () => {
