@@ -72,58 +72,61 @@ const Favorites = () => {
       {/* Favorites Grid */}
       <div className="p-4">
         {loading ? (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-2">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm animate-pulse border border-gray-200 dark:border-gray-700">
-                <div className="bg-gray-200 dark:bg-gray-700 rounded-t-lg h-36"></div>
-                <div className="p-3 space-y-2">
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg animate-pulse border border-gray-200 dark:border-gray-700 w-full max-w-sm mx-auto">
+                <div className="bg-gray-200 dark:bg-gray-700 aspect-[4/3]"></div>
+                <div className="p-4 space-y-3">
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+                  <div className="flex justify-between items-center">
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-16"></div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         ) : favorites.length > 0 ? (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-2">
             {favorites.map((recipe, index) => (
               <div
                 key={recipe._id}
-                className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200 border border-gray-200 dark:border-gray-700 relative"
+                className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all duration-200 border border-gray-200 dark:border-gray-700 w-full max-w-sm mx-auto"
                 onClick={() => navigate(`/recipe/${recipe._id}`)}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center rounded-t-lg h-36">
+                <div className="relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 aspect-[4/3]">
                   <img 
                     src={recipe.image?.url || '/placeholder.svg'}
                     alt={recipe.title}
-                    className="h-full object-cover"
-                    style={{ width: '274px', maxWidth: '274px' }}
+                    className="w-full h-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       target.nextElementSibling?.classList.remove('hidden');
                     }}
                   />
-                  <div className="w-6 h-6 text-muted-foreground hidden absolute inset-0 m-auto">🍽️</div>
+                  <div className="w-8 h-8 text-muted-foreground hidden absolute inset-0 m-auto text-2xl">🍽️</div>
                   
                   {/* Remove favorite button */}
                   <button
                     onClick={(e) => removeFavorite(recipe._id, e)}
-                    className="absolute top-2 right-2 bg-red-500/90 hover:bg-red-600 rounded-full p-1.5 transition-colors"
+                    className="absolute top-3 right-3 bg-red-500/90 hover:bg-red-600 rounded-full p-2 transition-colors shadow-md"
                     title="Remove from favorites"
                   >
-                    <Heart className="w-3 h-3 text-white fill-current" />
+                    <Heart className="w-4 h-4 text-white fill-current" />
                   </button>
                 </div>
-                <div className="p-3">
-                  <h4 className="font-semibold text-sm mb-2 line-clamp-2 leading-tight text-gray-900 dark:text-gray-100">
+                <div className="p-4">
+                  <h4 className="font-semibold text-base mb-3 text-gray-900 dark:text-gray-100 truncate">
                     {recipe.title}
                   </h4>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      ⏱️ Quick
-                    </span>
-                    <span className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>⏱️</span>
+                      <span className="truncate">Quick</span>
+                    </div>
+                    <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap">
                       {recipe.ingredients_cleaned.length} items
                     </span>
                   </div>

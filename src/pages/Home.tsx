@@ -395,12 +395,12 @@ const Home = () => {
             {/* Infinite Scroll Section */}
             {recipes.length > 6 && (
               <section className="mt-8">
-                <div className="mb-6">
+                <div className="mb-6 text-center sm:text-left">
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">🍽️ More Delicious Recipes</h3>
                   <p className="text-gray-600">Scroll down to discover more amazing dishes</p>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 justify-items-center">
                   {recipes.slice(6).map((recipe, index) => (
                     <RecipeCard key={`infinite-${recipe._id}`} recipe={recipe} index={index + 6} />
                   ))}

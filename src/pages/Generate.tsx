@@ -80,6 +80,8 @@ const Generate = () => {
   const [isCameraLoading, setIsCameraLoading] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isUsingFrontCamera, setIsUsingFrontCamera] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [showFlash, setShowFlash] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -252,6 +254,8 @@ const Generate = () => {
     setIsCameraActive(false);
     setIsCameraLoading(false);
     setCameraError(null);
+    setCapturedPhoto(null);
+    setShowFlash(false);
   };
 
   const capturePhoto = () => {
@@ -264,6 +268,10 @@ const Generate = () => {
       });
       return;
     }
+
+    // Flash animation
+    setShowFlash(true);
+    setTimeout(() => setShowFlash(false), 150);
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -290,21 +298,31 @@ const Generate = () => {
     }
     context.restore();
 
-    // Convert canvas to blob
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
-        handleImageCapture(file);
-        stopCamera();
-      } else {
-        console.error('Failed to create blob from canvas');
-        toast({
-          title: 'Capture failed',
-          description: 'Could not process the captured image.',
-          variant: 'destructive'
-        });
-      }
-    }, 'image/jpeg', 0.8);
+    // Convert canvas to data URL for preview
+    const photoDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    setCapturedPhoto(photoDataUrl);
+
+    // Pause camera stream during preview
+    setIsCameraActive(false);
+  };
+
+  const usePhoto = () => {
+    if (capturedPhoto && canvasRef.current) {
+      // Convert data URL back to blob for processing
+      canvasRef.current.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+          handleImageCapture(file);
+          setCapturedPhoto(null);
+          stopCamera();
+        }
+      }, 'image/jpeg', 0.8);
+    }
+  };
+
+  const retakePhoto = () => {
+    setCapturedPhoto(null);
+    setIsCameraActive(true);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -540,23 +558,23 @@ const Generate = () => {
               
               {/* Ingredient Input */}
               <div className="space-y-4">
-                <div className="flex gap-2 sm:gap-3">
+                <div className="flex items-center gap-3">
                   <input
                     type="text"
                     placeholder="Enter an ingredient (e.g., chicken breast, tomatoes...)"
                     value={currentIngredient}
                     onChange={(e) => setCurrentIngredient(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    className="flex-1 px-4 py-3 bg-background border-2 border-border rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors placeholder:text-muted-foreground"
+                    className="flex-1 h-12 px-4 bg-background border-2 border-border rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors placeholder:text-muted-foreground text-sm"
                   />
                   <Button
                     onClick={addIngredient}
                     disabled={!currentIngredient.trim()}
-                    size="lg"
-                    className="px-6 py-3 bg-primary hover:bg-primary/90 transform hover:scale-105 active:scale-95 transition-all duration-150"
+                    className="h-12 px-6 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg transition-colors flex items-center gap-2 flex-shrink-0"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Add</span>
+                    <span className="sm:hidden">+</span>
                   </Button>
                 </div>
 
@@ -647,6 +665,7 @@ const Generate = () => {
                     setIsCameraActive(false);
                     setIsCameraLoading(false);
                     setCameraError(null);
+                    setCapturedPhoto(null);
                     stopCamera();
                   }
                 }
@@ -670,203 +689,227 @@ const Generate = () => {
                     )}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="w-[95vw] max-w-lg mx-auto">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <Camera className="w-5 h-5" />
-                      {isExtractingIngredients ? 'Processing Image...' : 'Capture Ingredients'}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-3 sm:space-y-4 max-h-[80vh] overflow-y-auto">
-                    {isExtractingIngredients ? (
-                      <div className="text-center py-8">
-                        <div className="flex flex-col items-center justify-center space-y-4">
-                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                          <div className="space-y-2">
-                            <div className="text-lg font-semibold">Analyzing your image...</div>
-                            <p className="text-sm text-muted-foreground">
-                              Our AI is detecting ingredients from your photo
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                            <span>This may take a few seconds</span>
-                          </div>
+                <DialogContent className="w-screen h-screen max-w-none m-0 p-0 border-0 bg-black">
+                  {/* Full-screen immersive camera interface */}
+                  {isExtractingIngredients ? (
+                    <div className="flex items-center justify-center h-full bg-black text-white">
+                      <div className="text-center space-y-4">
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto"></div>
+                        <div className="space-y-2">
+                          <div className="text-xl font-semibold">Analyzing your image...</div>
+                          <p className="text-sm text-gray-300">
+                            Our AI is detecting ingredients from your photo
+                          </p>
                         </div>
                       </div>
-                    ) : (
-                      <>
-                        {/* Camera Error Display */}
-                        {cameraError && (
-                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                            <div className="flex items-start gap-3">
-                              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    </div>
+                  ) : (
+                    <div className="relative h-full w-full">
+                      {/* Flash overlay */}
+                      {showFlash && (
+                        <div className="absolute inset-0 bg-white z-50 animate-pulse"></div>
+                      )}
+                      
+                      {/* Close button */}
+                      <button
+                        onClick={() => setShowCamera(false)}
+                        className="absolute top-4 right-4 z-40 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
+
+                      {/* Camera Error Display */}
+                      {cameraError && (
+                        <div className="flex items-center justify-center h-full bg-black">
+                          <div className="bg-red-900/90 border border-red-700 rounded-lg p-6 m-4 max-w-md">
+                            <div className="flex items-start gap-3 text-white">
+                              <AlertCircle className="w-6 h-6 text-red-400 mt-0.5 flex-shrink-0" />
                               <div>
-                                <h4 className="text-sm font-medium text-red-800">Camera Access Failed</h4>
-                                <p className="text-sm text-red-700 mt-1">{cameraError}</p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Live Camera View */}
-                        {(isCameraActive || isCameraLoading) && (
-                          <div className="space-y-4">
-                            <div className="relative bg-gray-900 rounded-lg overflow-hidden border-2 border-blue-200">
-                              <video
-                                ref={videoRef}
-                                autoPlay
-                                playsInline
-                                muted
-                                controls={false}
-                                className="w-full h-64 sm:h-80 md:h-96 object-cover bg-black"
-                                style={{ 
-                                  transform: isUsingFrontCamera ? 'scaleX(-1)' : 'none' 
-                                }} // Only mirror for front camera
-                              />
-                              <div className="absolute inset-0 border-2 border-dashed border-white/50 rounded-lg pointer-events-none"></div>
-                              
-                              {isCameraLoading && (
-                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                  <div className="bg-white/90 rounded-lg p-4 flex items-center gap-3">
-                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                                    <span className="text-gray-800 font-medium">Starting camera...</span>
-                                  </div>
+                                <h4 className="text-lg font-medium">Camera Access Failed</h4>
+                                <p className="text-sm text-gray-300 mt-2">{cameraError}</p>
+                                <div className="flex gap-3 mt-4">
+                                  <Button 
+                                    onClick={() => {
+                                      setCameraError(null);
+                                      startCamera();
+                                    }}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Try Again
+                                  </Button>
+                                  <Button 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    variant="outline"
+                                    className="border-gray-600 text-white hover:bg-gray-800"
+                                  >
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Upload Photo
+                                  </Button>
                                 </div>
-                              )}
-                              
-                              {isCameraActive && (
-                                <>
-                                  <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 z-10">
-                                    <p className="text-white text-sm bg-black/70 px-3 py-2 rounded-full font-medium">
-                                      📸 Position ingredients in frame
-                                    </p>
-                                  </div>
-                                  {/* Camera active indicator */}
-                                  <div className="absolute top-3 right-3 z-10">
-                                    <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                                      LIVE
-                                    </div>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                            
-                            {isCameraActive && (
-                              <div className="flex gap-3">
-                                <Button 
-                                  onClick={capturePhoto} 
-                                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
-                                  size="lg"
-                                >
-                                  <Camera className="w-5 h-5 mr-2" />
-                                  📸 Capture Photo
-                                </Button>
-                                <Button 
-                                  onClick={stopCamera} 
-                                  variant="outline" 
-                                  className="flex-1 py-3"
-                                  size="lg"
-                                >
-                                  Cancel
-                                </Button>
                               </div>
-                            )}
+                            </div>
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {/* Camera Controls Section */}
-                        {!isCameraActive && !isCameraLoading && !cameraError && (
-                          <div className="space-y-4">
-                            <div className="text-sm text-muted-foreground text-center">
-                              Use your camera to capture ingredients or upload an image from your gallery
+                      {/* Photo Preview Mode */}
+                      {capturedPhoto && (
+                        <div className="h-full w-full bg-black">
+                          <img 
+                            src={capturedPhoto} 
+                            alt="Captured ingredients" 
+                            className="w-full h-full object-cover"
+                          />
+                          
+                          {/* Preview controls */}
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+                            <div className="flex justify-center gap-4">
+                              <Button
+                                onClick={retakePhoto}
+                                variant="outline"
+                                className="bg-black/50 border-white/30 text-white hover:bg-black/70 px-8 py-3"
+                              >
+                                Retake
+                              </Button>
+                              <Button
+                                onClick={usePhoto}
+                                className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
+                              >
+                                Use Photo
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Live Camera View */}
+                      {(isCameraActive || isCameraLoading) && !capturedPhoto && (
+                        <div className="h-full w-full relative">
+                          <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            controls={false}
+                            className="w-full h-full object-cover bg-black"
+                            style={{ 
+                              transform: isUsingFrontCamera ? 'scaleX(-1)' : 'none' 
+                            }}
+                          />
+                          
+                          {/* Elegant guidance overlay with corner brackets */}
+                          <div className="absolute inset-4 pointer-events-none">
+                            <div className="relative w-full h-full">
+                              {/* Corner brackets */}
+                              <div className="absolute top-0 left-0">
+                                <div className="w-8 h-8 border-t-2 border-l-2 border-white/70"></div>
+                              </div>
+                              <div className="absolute top-0 right-0">
+                                <div className="w-8 h-8 border-t-2 border-r-2 border-white/70"></div>
+                              </div>
+                              <div className="absolute bottom-0 left-0">
+                                <div className="w-8 h-8 border-b-2 border-l-2 border-white/70"></div>
+                              </div>
+                              <div className="absolute bottom-0 right-0">
+                                <div className="w-8 h-8 border-b-2 border-r-2 border-white/70"></div>
+                              </div>
+                              
+                              {/* Center guidance text */}
+                              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                <div className="bg-black/60 px-4 py-2 rounded-full">
+                                  <p className="text-white text-sm font-medium">
+                                    Position ingredients in frame
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {isCameraLoading && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <div className="bg-black/80 rounded-lg p-6 flex items-center gap-4">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                                <span className="text-white font-medium text-lg">Starting camera...</span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {isCameraActive && (
+                            <>
+                              {/* LIVE indicator */}
+                              <div className="absolute top-4 left-4 z-30">
+                                <div className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                                  LIVE
+                                </div>
+                              </div>
+
+                              {/* Camera controls at bottom */}
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+                                <div className="flex justify-center items-center">
+                                  {/* Large circular shutter button */}
+                                  <button
+                                    onClick={capturePhoto}
+                                    className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors active:scale-95 transform"
+                                  >
+                                    <div className="w-16 h-16 bg-white rounded-full border-2 border-gray-400"></div>
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Initial Camera Launch Screen */}
+                      {!isCameraActive && !isCameraLoading && !cameraError && !capturedPhoto && (
+                        <div className="flex items-center justify-center h-full bg-black">
+                          <div className="text-center space-y-6 text-white max-w-md mx-4">
+                            <Camera className="w-16 h-16 mx-auto text-gray-400" />
+                            <div>
+                              <h3 className="text-xl font-semibold mb-2">Capture Ingredients</h3>
+                              <p className="text-gray-300 text-sm">
+                                Use your camera to capture ingredients or upload an image from your gallery
+                              </p>
                             </div>
                             
-                          
-                            
-                            <div className="grid grid-cols-1 gap-3">
+                            <div className="space-y-3">
                               <Button 
-                                onClick={() => {
-                                  startCamera();
-                                }}
+                                onClick={startCamera}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
                                 disabled={isCameraLoading}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
                               >
-                                {isCameraLoading ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    Starting Camera...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Camera className="w-4 h-4 mr-2" />
-                                    Open Camera
-                                  </>
-                                )}
+                                <Camera className="w-5 h-5 mr-2" />
+                                Open Camera
                               </Button>
                               
                               <Button 
                                 onClick={() => fileInputRef.current?.click()}
                                 variant="outline" 
-                                className="w-full"
-                                disabled={isCameraLoading}
+                                className="w-full border-gray-600 text-white hover:bg-gray-800 py-3"
                               >
-                                <Upload className="w-4 h-4 mr-2" />
+                                <Upload className="w-5 h-5 mr-2" />
                                 Upload from Gallery
                               </Button>
                             </div>
-
-                            {/* Hidden file input */}
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/*"
-                              capture="environment"
-                              onChange={handleFileSelect}
-                              className="hidden"
-                            />
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {/* Try Again Option */}
-                        {cameraError && (
-                          <div className="space-y-3">
-                            <Button 
-                              onClick={() => {
-                                setCameraError(null);
-                                startCamera();
-                              }}
-                              variant="outline" 
-                              className="w-full"
-                            >
-                              Try Camera Again
-                            </Button>
-                            
-                            <Button 
-                              onClick={() => fileInputRef.current?.click()}
-                              className="w-full"
-                            >
-                              <Upload className="w-4 h-4 mr-2" />
-                              Upload Image Instead
-                            </Button>
-
-                            {/* Hidden file input */}
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileSelect}
-                              className="hidden"
-                            />
-                          </div>
-                        )}
-
-                        {/* Hidden canvas for photo capture */}
-                        <canvas ref={canvasRef} className="hidden" />
-                      </>
-                    )}
-                  </div>
+                      {/* Hidden canvas for photo processing */}
+                      <canvas ref={canvasRef} className="hidden" />
+                      
+                      {/* Hidden file input */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
                 </DialogContent>
               </Dialog>
             </div>
