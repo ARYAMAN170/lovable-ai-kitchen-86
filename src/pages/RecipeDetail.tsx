@@ -305,7 +305,7 @@ const RecipeDetail = () => {
         </div>
         {/* Title & Description */}
         <div className="space-y-3">
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground leading-tight">{recipe.title}</h1>
+          <h1 className="text-3xl sm:text-4xl text-gray-600 font-bold text-foreground leading-tight">{recipe.title}</h1>
           <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
             {recipe.instructions.substring(0, 180)}...
           </p>
