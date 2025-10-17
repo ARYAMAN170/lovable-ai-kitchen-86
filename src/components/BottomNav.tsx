@@ -14,7 +14,7 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-3 md:px-8 z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-2 py-2 sm:px-4 sm:py-3 md:px-8 z-50">
       <div className="max-w-screen-xl mx-auto flex justify-around items-center">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -25,14 +25,14 @@ const BottomNav = () => {
               key={item.path}
               onClick={() => navigate(item.path)}
               className={cn(
-                'flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all',
+                'flex flex-col items-center gap-1 px-2 py-2 sm:px-4 rounded-xl transition-all min-w-0',
                 isActive
                   ? 'text-primary bg-primary/10'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Icon className={cn('w-6 h-6', isActive && 'fill-primary')} />
-              <span className="text-xs font-medium">{item.label}</span>
+              <Icon className={cn('w-5 h-5 sm:w-6 sm:h-6', isActive && 'fill-primary')} />
+              <span className="text-xs font-medium truncate">{item.label}</span>
             </button>
           );
         })}

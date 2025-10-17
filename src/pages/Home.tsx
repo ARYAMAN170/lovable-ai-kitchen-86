@@ -158,37 +158,37 @@ const Home = () => {
         }
       `}</style>
       {/* Enhanced Header */}
-      <div className="p-6 bg-gradient-to-br from-orange-50 to-amber-50">
+      <div className="p-4 sm:p-6 bg-gradient-to-br from-orange-50 to-amber-50">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
             <div className="flex items-center gap-3">
-              <Avatar className="w-12 h-12 border-2 border-orange-200">
-                <AvatarFallback className="bg-orange-500 text-white">
+              <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-orange-200">
+                <AvatarFallback className="bg-orange-500 text-white text-sm sm:text-base">
                   {userName.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-sm text-gray-600">{greeting}</p>
-                <h2 className="text-lg font-semibold text-gray-900">{userName}</h2>
+                <p className="text-xs sm:text-sm text-gray-600">{greeting}</p>
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">{userName}</h2>
               </div>
             </div>
             <button className="p-2 rounded-full hover:bg-orange-100 transition-colors">
-              <Bell className="w-6 h-6 text-gray-700" />
+              <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
             </button>
           </div>
 
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
               Good morning, {userName}
             </h1>
-            <p className="text-xl text-gray-600 leading-relaxed">
+            <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
               Warm up your stove and let's create something delicious together
             </p>
           </div>
 
           {/* Enhanced Search Bar */}
           <div className="relative max-w-2xl">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-orange-400" />
+            <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 text-orange-400" />
             <Input
               placeholder="Search for recipes, ingredients, or cuisines..."
               value={searchQuery}
@@ -197,14 +197,14 @@ const Home = () => {
                 setSearchQuery(value);
                 debouncedSearch(value);
               }}
-              className="w-full pl-14 pr-12 py-4 text-lg rounded-2xl border-2 border-orange-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-lg"
+              className="w-full pl-12 sm:pl-14 pr-10 sm:pr-12 py-3 sm:py-4 text-base sm:text-lg rounded-2xl border-2 border-orange-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-lg"
             />
             {searchQuery && (
               <button
                 onClick={clearSearch}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-orange-100 rounded-full transition-colors"
+                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-orange-100 rounded-full transition-colors"
               >
-                <span className="text-gray-500 text-xl">×</span>
+                <span className="text-gray-500 text-lg sm:text-xl">×</span>
               </button>
             )}
           </div>
@@ -213,36 +213,36 @@ const Home = () => {
 
       {/* Hero Section - Featured Recipe */}
       {featuredRecipe && (
-        <section className="px-6 py-8 max-w-6xl mx-auto">
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-3xl overflow-hidden shadow-2xl">
+        <section className="px-4 sm:px-6 py-6 sm:py-8 max-w-6xl mx-auto">
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
             <div className="flex flex-col lg:flex-row">
               {/* Left Content */}
-              <div className="lg:w-1/2 p-8 lg:p-12 text-white">
-                <div className="inline-block bg-white/20 text-sm px-3 py-1 rounded-full mb-4">
+              <div className="lg:w-1/2 p-6 sm:p-8 lg:p-12 text-white">
+                <div className="inline-block bg-white/20 text-xs sm:text-sm px-3 py-1 rounded-full mb-4">
                   ⭐ Featured from Favorites
                 </div>
-                <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 leading-tight">
                   {featuredRecipe.title}
                 </h2>
-                <p className="text-lg opacity-90 mb-6 leading-relaxed">
+                <p className="text-base sm:text-lg opacity-90 mb-6 leading-relaxed">
                   One of your favorite recipes - perfectly crafted and ready to cook again!
                 </p>
-                <div className="flex items-center gap-4 mb-6">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-6">
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
-                    25 min
+                    <span className="text-sm sm:text-base">25 min</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
-                    4 servings
+                    <span className="text-sm sm:text-base">4 servings</span>
                   </span>
-                  <span className="bg-green-400 text-green-900 px-2 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-green-400 text-green-900 px-2 py-1 rounded-full text-xs sm:text-sm font-medium">
                     Easy
                   </span>
                 </div>
                 <button 
                   onClick={() => navigate(`/recipe/${featuredRecipe._id}`)}
-                  className="bg-white text-orange-600 hover:bg-orange-50 font-semibold px-8 py-3 rounded-xl transition-colors"
+                  className="w-full sm:w-auto bg-white text-orange-600 hover:bg-orange-50 font-semibold px-6 sm:px-8 py-3 rounded-xl transition-colors text-center"
                 >
                   View Recipe
                 </button>
@@ -266,28 +266,28 @@ const Home = () => {
       )}
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 space-y-12 pb-24">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8 sm:space-y-12 pb-20 sm:pb-24">
         {isSearching ? (
           /* Search Results Section */
           <section>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900">Search Results</h3>
-                <p className="text-gray-600">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Search Results</h3>
+                <p className="text-sm sm:text-base text-gray-600">
                   {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
                 </p>
               </div>
             </div>
             
             {searchResults.length > 0 ? (
-              <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
+              <div className="flex overflow-x-auto space-x-4 sm:space-x-6 pb-4 scrollbar-hide">
                 {searchResults.map((recipe, index) => (
                   <RecipeCard key={recipe._id} recipe={recipe} index={index} />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                <Search className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+              <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                <Search className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 text-gray-400" />
                 <h4 className="font-semibold text-lg mb-2 text-gray-900">No recipes found</h4>
                 <p className="text-gray-600 mb-4">
                   Try searching for different ingredients or recipe names
@@ -306,20 +306,20 @@ const Home = () => {
           <>
             {/* Trending Carousel */}
             <section>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900">🔥 Trending on Stir</h3>
-                  <p className="text-gray-600">What everyone's cooking this week</p>
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">🔥 Trending on Stir</h3>
+                  <p className="text-sm sm:text-base text-gray-600 hidden sm:block">What everyone's cooking this week</p>
                 </div>
                 <button 
                   onClick={() => navigate('/favorites')}
-                  className="text-orange-600 hover:text-orange-700 font-medium transition-colors"
+                  className="text-orange-600 hover:text-orange-700 font-medium transition-colors text-sm sm:text-base flex-shrink-0"
                 >
                   View All →
                 </button>
               </div>
               
-              <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
+              <div className="flex overflow-x-auto space-x-4 sm:space-x-6 pb-4 scrollbar-hide">
                 {recipes.slice(0, 6).map((recipe, index) => (
                   <RecipeCard key={recipe._id} recipe={recipe} index={index} />
                 ))}
@@ -328,14 +328,14 @@ const Home = () => {
 
             {/* Quick Meals Carousel */}
             <section>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900">⚡ Quick Weeknight Dinners</h3>
-                  <p className="text-gray-600">Ready in 30 minutes or less</p>
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">⚡ Quick Weeknight Dinners</h3>
+                  <p className="text-sm sm:text-base text-gray-600 hidden sm:block">Ready in 30 minutes or less</p>
                 </div>
                 <button 
                   onClick={() => navigate('/favorites')}
-                  className="text-orange-600 hover:text-orange-700 font-medium transition-colors"
+                  className="text-orange-600 hover:text-orange-700 font-medium transition-colors text-sm sm:text-base flex-shrink-0"
                 >
                   View All →
                 </button>
@@ -428,7 +428,7 @@ const RecipeCard = ({ recipe, index }: { recipe: Recipe; index: number }) => {
   
   return (
     <div 
-      className="flex-shrink-0 w-72 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer overflow-hidden"
+      className="flex-shrink-0 w-64 sm:w-72 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer overflow-hidden"
       onClick={() => navigate(`/recipe/${recipe._id}`)}
       style={{ animationDelay: `${index * 100}ms` }}
     >
@@ -437,19 +437,19 @@ const RecipeCard = ({ recipe, index }: { recipe: Recipe; index: number }) => {
         <img 
           src={recipe.image?.url || '/placeholder.svg'}
           alt={recipe.title}
-          className="w-full h-48 object-cover"
+          className="w-full h-40 sm:h-48 object-cover"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = '/placeholder.svg';
           }}
         />
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
           <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1">
             <Star className="w-3 h-3 text-yellow-500 fill-current" />
             <span className="text-xs font-medium">4.8</span>
           </div>
         </div>
-        <div className="absolute bottom-3 left-3">
+        <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
           <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
             Easy
           </span>
@@ -457,27 +457,27 @@ const RecipeCard = ({ recipe, index }: { recipe: Recipe; index: number }) => {
       </div>
       
       {/* Content */}
-      <div className="p-5">
-        <h4 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+      <div className="p-4 sm:p-5">
+        <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2 line-clamp-2">
           {recipe.title}
         </h4>
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+        <p className="text-gray-600 text-sm mb-3 sm:mb-4 line-clamp-2 hidden sm:block">
           Delicious and perfectly seasoned recipe that's perfect for any occasion.
         </p>
         
         {/* Meta info */}
-        <div className="flex items-center justify-between text-sm text-gray-500">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
+          <div className="flex items-center gap-2 sm:gap-3">
             <span className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              25 min
+              <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="text-xs sm:text-sm">25 min</span>
             </span>
             <span className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
-              4 servings
+              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="text-xs sm:text-sm">4 servings</span>
             </span>
           </div>
-          <Heart className="w-5 h-5 text-gray-400 hover:text-red-500 transition-colors cursor-pointer" />
+          <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0" />
         </div>
       </div>
     </div>

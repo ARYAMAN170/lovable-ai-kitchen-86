@@ -242,28 +242,28 @@ const RecipeDetail = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-lg border-b border-gray-200 shadow-sm">
-        <div className="max-w-3xl mx-auto flex items-center justify-between p-4">
+        <div className="max-w-3xl mx-auto flex items-center justify-between p-3 sm:p-4">
           <button
             onClick={() => navigate(-1)}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-700 hover:text-gray-900"
           >
-            <ArrowLeft className="w-6 h-6" />
+            <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
           
           <div className="flex-1 text-center px-4">
-            <h1 className="font-semibold text-gray-900 truncate">{recipe.title}</h1>
+            <h1 className="font-semibold text-gray-900 truncate text-sm sm:text-base">{recipe.title}</h1>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2">
             <button className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-700 hover:text-gray-900">
-              <Share2 className="w-6 h-6" />
+              <Share2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
             <button
               onClick={toggleFavorite}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-700 hover:text-gray-900"
             >
               <Heart
-                className={`w-6 h-6 ${
+                className={`w-5 h-5 sm:w-6 sm:h-6 ${
                   isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'
                 }`}
               />
@@ -273,23 +273,23 @@ const RecipeDetail = () => {
       </div>
 
       {/* Main Content Container */}
-      <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
         {/* Start Cooking Button */}
-        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 p-6 rounded-2xl border border-emerald-300 shadow-lg">
+        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 p-4 sm:p-6 rounded-2xl border border-emerald-300 shadow-lg">
           <Button 
             onClick={startCookingMode}
-            className="w-full bg-white hover:bg-emerald-50 text-emerald-700 border-2 border-emerald-200 hover:border-emerald-300 h-14 text-lg font-semibold shadow-sm transition-all"
+            className="w-full bg-white hover:bg-emerald-50 text-emerald-700 border-2 border-emerald-200 hover:border-emerald-300 h-12 sm:h-14 text-base sm:text-lg font-semibold shadow-sm transition-all"
           >
-            <Play className="w-6 h-6 mr-3" />
+            <Play className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" />
             Start Cooking Mode
           </Button>
-          <p className="text-center text-emerald-100 text-sm mt-3">
+          <p className="text-center text-emerald-100 text-xs sm:text-sm mt-2 sm:mt-3">
             Step-by-step guided cooking experience
           </p>
         </div>
 
         {/* Recipe Image */}
-        <div className="w-full h-80 bg-gradient-to-br from-orange-100 to-red-100 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg">
+        <div className="w-full h-64 sm:h-80 bg-gradient-to-br from-orange-100 to-red-100 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg">
           {recipe.image?.url ? (
             <img 
               src={recipe.image.url} 
@@ -305,13 +305,13 @@ const RecipeDetail = () => {
         </div>
         {/* Title & Description */}
         <div className="space-y-3">
-          <h1 className="text-black text-4xl font-bold text-foreground leading-tight">{recipe.title}</h1>
-          <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl">
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground leading-tight">{recipe.title}</h1>
+          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
             {recipe.instructions.substring(0, 180)}...
           </p>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
-              <ChefHat className="w-4 h-4" />
+              <ChefHat className="w-3 h-3 sm:w-4 sm:h-4" />
               Chef curated
             </span>
             <span>•</span>
@@ -320,29 +320,29 @@ const RecipeDetail = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 p-6 rounded-2xl text-center hover:shadow-md transition-all">
-            <Clock className="w-6 h-6 mx-auto mb-2 text-orange-600" />
-            <div className="text-lg font-bold text-orange-900">15 min</div>
-            <div className="text-sm text-orange-700">Prep Time</div>
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 p-3 sm:p-6 rounded-xl sm:rounded-2xl text-center hover:shadow-md transition-all">
+            <Clock className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-orange-600" />
+            <div className="text-sm sm:text-lg font-bold text-orange-900">15 min</div>
+            <div className="text-xs sm:text-sm text-orange-700">Prep Time</div>
           </div>
-          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 p-6 rounded-2xl text-center hover:shadow-md transition-all">
-            <Clock className="w-6 h-6 mx-auto mb-2 text-emerald-600" />
-            <div className="text-lg font-bold text-emerald-900">25 min</div>
-            <div className="text-sm text-emerald-700">Cook Time</div>
+          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 p-3 sm:p-6 rounded-xl sm:rounded-2xl text-center hover:shadow-md transition-all">
+            <Clock className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-emerald-600" />
+            <div className="text-sm sm:text-lg font-bold text-emerald-900">25 min</div>
+            <div className="text-xs sm:text-sm text-emerald-700">Cook Time</div>
           </div>
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 p-6 rounded-2xl text-center hover:shadow-md transition-all">
-            <ChefHat className="w-6 h-6 mx-auto mb-2 text-blue-600" />
-            <div className="text-lg font-bold text-blue-900">Medium</div>
-            <div className="text-sm text-blue-700">Difficulty</div>
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 p-3 sm:p-6 rounded-xl sm:rounded-2xl text-center hover:shadow-md transition-all">
+            <ChefHat className="w-4 h-4 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-blue-600" />
+            <div className="text-sm sm:text-lg font-bold text-blue-900">Medium</div>
+            <div className="text-xs sm:text-sm text-blue-700">Difficulty</div>
           </div>
         </div>
 
         {/* Nutrition */}
-        <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 p-6 rounded-2xl">
-          <h3 className="text-lg font-semibold mb-4 text-slate-800">Nutrition Information</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-white p-4 rounded-xl text-center shadow-sm border border-red-100">
+        <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 p-4 sm:p-6 rounded-2xl">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-slate-800">Nutrition Information</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <div className="bg-white p-3 sm:p-4 rounded-xl text-center shadow-sm border border-red-100">
               <div className="text-2xl mb-1">🔥</div>
               <div className="font-bold text-red-800">350</div>
               <div className="text-xs text-red-600">Calories</div>

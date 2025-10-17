@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import BottomNav from '@/components/BottomNav';
-import { Camera, Sparkles, ChefHat, Heart, Plus, X, Upload, Keyboard } from 'lucide-react';
+import { Camera, Sparkles, ChefHat, Heart, Plus, X, Upload, Keyboard, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -73,6 +73,15 @@ const Generate = () => {
   const [isExtractingIngredients, setIsExtractingIngredients] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [recipeImageUrl, setRecipeImageUrl] = useState<string | null>(null);
+  
+  // Camera-specific state
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isCameraLoading, setIsCameraLoading] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userName = user?.name || 'Chef';
   const greeting = 'Good morning';
@@ -137,6 +146,201 @@ const Generate = () => {
       setSavingRecipe(false);
     }
   };
+
+  // Enhanced camera functions for better mobile support
+  const startCamera = async () => {
+    setCameraError(null);
+    setIsCameraActive(false);
+    setIsCameraLoading(true);
+    
+    try {
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported on this device');
+      }
+
+      console.log('Starting camera...');
+
+      // Request camera permission with mobile-optimized constraints
+      const constraints = {
+        video: {
+          facingMode: 'environment', // Use rear camera on mobile
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          aspectRatio: { ideal: 16/9 }
+        }
+      };
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('Camera stream obtained:', mediaStream);
+      
+      setStream(mediaStream);
+      
+      // Wait for video element to be mounted and try multiple times
+      let attempts = 0;
+      const maxAttempts = 5; // Reduced since video is now rendered when loading starts
+      
+      const assignStreamToVideo = () => {
+        if (videoRef.current) {
+          console.log('Video element found, assigning stream');
+          videoRef.current.srcObject = mediaStream;
+          
+          // Wait for video to be ready before setting active state
+          videoRef.current.onloadedmetadata = () => {
+            console.log('Video metadata loaded');
+            videoRef.current?.play().then(() => {
+              console.log('Video playing, setting camera active');
+              setIsCameraActive(true);
+              setIsCameraLoading(false);
+            }).catch((playError) => {
+              console.error('Video play error:', playError);
+              setCameraError('Failed to start video playback');
+              setIsCameraLoading(false);
+            });
+          };
+          
+          // Also try to play immediately in case onloadedmetadata doesn't fire
+          setTimeout(() => {
+            if (videoRef.current && videoRef.current.readyState >= 2) {
+              videoRef.current.play().catch(console.error);
+            }
+          }, 500);
+          
+        } else {
+          attempts++;
+          if (attempts < maxAttempts) {
+            console.log(`Video element not ready, attempt ${attempts}/${maxAttempts}`);
+            setTimeout(assignStreamToVideo, 100); // Reduced delay since element should be available
+          } else {
+            throw new Error('Video element not available after multiple attempts');
+          }
+        }
+      };
+      
+      // Small delay to ensure video element is in DOM
+      setTimeout(assignStreamToVideo, 50);
+    } catch (error) {
+      console.error('Camera access error:', error);
+      let errorMessage = 'Unable to access camera. ';
+      
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage += 'Please allow camera permission and try again.';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage += 'No camera found on this device.';
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage += 'Camera not supported on this browser.';
+        } else {
+          errorMessage += error.message;
+        }
+      }
+      
+      setCameraError(errorMessage);
+      setIsCameraActive(false);
+      setIsCameraLoading(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setIsCameraActive(false);
+    setIsCameraLoading(false);
+    setCameraError(null);
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) {
+      console.error('Video or canvas element not available');
+      toast({
+        title: 'Capture failed',
+        description: 'Camera elements not ready. Please try again.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+      console.error('Canvas context not available');
+      return;
+    }
+
+    console.log('Capturing photo...', {
+      videoWidth: video.videoWidth,
+      videoHeight: video.videoHeight,
+      readyState: video.readyState
+    });
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+
+    // Draw the video frame to canvas (flip back if mirrored)
+    context.save();
+    context.scale(-1, 1); // Flip horizontally to undo mirror effect
+    context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    context.restore();
+
+    // Convert canvas to blob
+    canvas.toBlob((blob) => {
+      if (blob) {
+        console.log('Photo captured successfully, blob size:', blob.size);
+        const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+        handleImageCapture(file);
+        stopCamera();
+      } else {
+        console.error('Failed to create blob from canvas');
+        toast({
+          title: 'Capture failed',
+          description: 'Could not process the captured image.',
+          variant: 'destructive'
+        });
+      }
+    }, 'image/jpeg', 0.8);
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleImageCapture(file);
+    }
+  };
+
+  // Cleanup camera stream on unmount or dialog close
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showCamera) {
+      stopCamera();
+    }
+  }, [showCamera]);
+
+  // Ensure video element is ready when dialog opens
+  useEffect(() => {
+    if (showCamera && !isExtractingIngredients && !isCameraActive && !isCameraLoading && !cameraError) {
+      // Small delay to ensure dialog is fully rendered
+      const timer = setTimeout(() => {
+        console.log('Dialog opened, checking video element availability...');
+        if (videoRef.current) {
+          console.log('Video element is available on dialog open');
+        } else {
+          console.log('Video element not yet available, will try when camera starts');
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showCamera, isExtractingIngredients, isCameraActive, isCameraLoading, cameraError]);
 
   const handleImageCapture = async (file: File) => {
     setIsExtractingIngredients(true);
@@ -295,67 +499,69 @@ const Generate = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-20 sm:pb-24">
       {/* Header */}
-      <div className="p-6 bg-gradient-dark">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4 sm:p-6 bg-gradient-dark">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div className="flex items-center gap-3">
-            <Avatar className="w-12 h-12 border-2 border-primary">
-              <AvatarFallback className="bg-primary text-primary-foreground">
+            <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-primary">
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm sm:text-base">
                 {userName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm text-muted-foreground">{greeting}</p>
-              <h2 className="text-lg font-semibold">{userName}</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">{greeting}</p>
+              <h2 className="text-base sm:text-lg font-semibold">{userName}</h2>
             </div>
           </div>
         </div>
 
-        <h1 className="text-2xl font-bold mb-2">
+        <h1 className="text-xl sm:text-2xl font-bold mb-2">
           Recipe Collection
         </h1>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-base sm:text-lg text-muted-foreground">
           Browse dishes or create new ones
         </p>
       </div>
 
       {/* Main Content */}
-      <div className="p-6 max-w-4xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-4xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className={`grid w-full ${generatedRecipe ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            <TabsTrigger value="generate" className="flex items-center gap-2">
+            <TabsTrigger value="generate" className="flex items-center gap-2 text-sm sm:text-base">
               <Sparkles className="w-4 h-4" />
-              Generate Recipe
+              <span className="hidden sm:inline">Generate Recipe</span>
+              <span className="sm:hidden">Generate</span>
             </TabsTrigger>
             {generatedRecipe && (
-              <TabsTrigger value="preview" className="flex items-center gap-2">
+              <TabsTrigger value="preview" className="flex items-center gap-2 text-sm sm:text-base">
                 <ChefHat className="w-4 h-4" />
-                Preview Recipe
+                <span className="hidden sm:inline">Preview Recipe</span>
+                <span className="sm:hidden">Preview</span>
               </TabsTrigger>
             )}
           </TabsList>
 
           {/* Generate Recipe Tab */}
-          <TabsContent value="generate" className="mt-6 space-y-8">
+          <TabsContent value="generate" className="mt-4 sm:mt-6 space-y-6 sm:space-y-8">
             {/* Manual Ingredient Input Card */}
-            <div className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <Keyboard className="w-6 h-6 text-primary" />
+            <div className="bg-card border border-border rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200">
+              <div className="flex items-start sm:items-center gap-3 mb-4 sm:mb-6">
+                <div className="p-2 sm:p-3 bg-primary/10 rounded-full flex-shrink-0">
+                  <Keyboard className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground">Add Your Ingredients</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">Type ingredients one by one to build your recipe</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold text-foreground">Add Your Ingredients</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">Type ingredients one by one to build your recipe</p>
                 </div>
-                <div className="ml-auto text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground flex-shrink-0">
                   {ingredientsList.length} ingredient{ingredientsList.length !== 1 ? 's' : ''} added
                 </div>
               </div>
               
               {/* Ingredient Input */}
               <div className="space-y-4">
-                <div className="flex gap-3">
+                <div className="flex gap-2 sm:gap-3">
                   <input
                     type="text"
                     placeholder="Enter an ingredient (e.g., chicken breast, tomatoes...)"
@@ -457,6 +663,13 @@ const Generate = () => {
               <Dialog open={showCamera} onOpenChange={(open) => {
                 if (!isExtractingIngredients) {
                   setShowCamera(open);
+                  if (!open) {
+                    // Reset camera state when dialog closes
+                    setIsCameraActive(false);
+                    setIsCameraLoading(false);
+                    setCameraError(null);
+                    stopCamera();
+                  }
                 }
               }}>
                 <DialogTrigger asChild>
@@ -478,7 +691,7 @@ const Generate = () => {
                     )}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-lg">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                       <Camera className="w-5 h-5" />
@@ -504,28 +717,182 @@ const Generate = () => {
                       </div>
                     ) : (
                       <>
-                        <div className="text-sm text-muted-foreground">
-                          Upload an image of your ingredients and we'll automatically detect and add them to your list.
-                        </div>
-                        
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleImageCapture(file);
-                            }
-                          }}
-                          className="file:mr-2 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                          disabled={isExtractingIngredients}
-                        />
-                        
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Upload className="w-3 h-3" />
-                          <span>Or upload from gallery</span>
-                        </div>
+                        {/* Camera Error Display */}
+                        {cameraError && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <h4 className="text-sm font-medium text-red-800">Camera Access Failed</h4>
+                                <p className="text-sm text-red-700 mt-1">{cameraError}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Live Camera View */}
+                        {(isCameraActive || isCameraLoading) && (
+                          <div className="space-y-4">
+                            <div className="relative bg-gray-900 rounded-lg overflow-hidden border-2 border-blue-200">
+                              <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                controls={false}
+                                className="w-full h-64 object-cover bg-black"
+                                style={{ transform: 'scaleX(-1)' }} // Mirror for selfie mode
+                              />
+                              <div className="absolute inset-0 border-2 border-dashed border-white/50 rounded-lg pointer-events-none"></div>
+                              
+                              {isCameraLoading && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                  <div className="bg-white/90 rounded-lg p-4 flex items-center gap-3">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                    <span className="text-gray-800 font-medium">Starting camera...</span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {isCameraActive && (
+                                <>
+                                  <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 z-10">
+                                    <p className="text-white text-sm bg-black/70 px-3 py-2 rounded-full font-medium">
+                                      📸 Position ingredients in frame
+                                    </p>
+                                  </div>
+                                  {/* Camera active indicator */}
+                                  <div className="absolute top-3 right-3 z-10">
+                                    <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                                      LIVE
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            
+                            {isCameraActive && (
+                              <div className="flex gap-3">
+                                <Button 
+                                  onClick={capturePhoto} 
+                                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
+                                  size="lg"
+                                >
+                                  <Camera className="w-5 h-5 mr-2" />
+                                  📸 Capture Photo
+                                </Button>
+                                <Button 
+                                  onClick={stopCamera} 
+                                  variant="outline" 
+                                  className="flex-1 py-3"
+                                  size="lg"
+                                >
+                                  ❌ Cancel
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Camera Controls Section */}
+                        {!isCameraActive && !isCameraLoading && !cameraError && (
+                          <div className="space-y-4">
+                            <div className="text-sm text-muted-foreground text-center">
+                              Use your camera to capture ingredients or upload an image from your gallery
+                            </div>
+                            
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                              <div className="text-xs text-blue-600 mb-2">🛠️ Debug Info</div>
+                              <div className="text-xs text-blue-700">
+                                Video Element: {videoRef.current ? '✅ Ready' : '❌ Not Available'}<br/>
+                                Dialog Open: {showCamera ? '✅ Yes' : '❌ No'}<br/>
+                                Camera Support: {navigator.mediaDevices ? '✅ Yes' : '❌ No'}
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 gap-3">
+                              <Button 
+                                onClick={() => {
+                                  console.log('Camera button clicked');
+                                  console.log('Video element available:', !!videoRef.current);
+                                  console.log('Dialog open:', showCamera);
+                                  startCamera();
+                                }}
+                                disabled={isCameraLoading}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                              >
+                                {isCameraLoading ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Starting Camera...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Camera className="w-4 h-4 mr-2" />
+                                    📸 Open Camera
+                                  </>
+                                )}
+                              </Button>
+                              
+                              <Button 
+                                onClick={() => fileInputRef.current?.click()}
+                                variant="outline" 
+                                className="w-full"
+                                disabled={isCameraLoading}
+                              >
+                                <Upload className="w-4 h-4 mr-2" />
+                                📁 Upload from Gallery
+                              </Button>
+                            </div>
+
+                            {/* Hidden file input */}
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              onChange={handleFileSelect}
+                              className="hidden"
+                            />
+                          </div>
+                        )}
+
+                        {/* Try Again Option */}
+                        {cameraError && (
+                          <div className="space-y-3">
+                            <Button 
+                              onClick={() => {
+                                setCameraError(null);
+                                startCamera();
+                              }}
+                              variant="outline" 
+                              className="w-full"
+                            >
+                              Try Camera Again
+                            </Button>
+                            
+                            <Button 
+                              onClick={() => fileInputRef.current?.click()}
+                              className="w-full"
+                            >
+                              <Upload className="w-4 h-4 mr-2" />
+                              Upload Image Instead
+                            </Button>
+
+                            {/* Hidden file input */}
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileSelect}
+                              className="hidden"
+                            />
+                          </div>
+                        )}
+
+                        {/* Hidden canvas for photo capture */}
+                        <canvas ref={canvasRef} className="hidden" />
                       </>
                     )}
                   </div>
