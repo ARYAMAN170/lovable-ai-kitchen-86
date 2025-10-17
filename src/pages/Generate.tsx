@@ -79,6 +79,7 @@ const Generate = () => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCameraLoading, setIsCameraLoading] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isUsingFrontCamera, setIsUsingFrontCamera] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -159,8 +160,6 @@ const Generate = () => {
         throw new Error('Camera not supported on this device');
       }
 
-      console.log('Starting camera...');
-
       // Request camera permission with mobile-optimized constraints
       const constraints = {
         video: {
@@ -172,7 +171,15 @@ const Generate = () => {
       };
 
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('Camera stream obtained:', mediaStream);
+      
+      // Detect camera type from stream
+      const videoTrack = mediaStream.getVideoTracks()[0];
+      const settings = videoTrack.getSettings();
+      
+      // Check if using front camera (some devices report 'user' instead of 'environment')
+      const isFrontCam = settings.facingMode === 'user' || 
+                         (!settings.facingMode && constraints.video.facingMode !== 'environment');
+      setIsUsingFrontCamera(isFrontCam);
       
       setStream(mediaStream);
       
@@ -182,14 +189,11 @@ const Generate = () => {
       
       const assignStreamToVideo = () => {
         if (videoRef.current) {
-          console.log('Video element found, assigning stream');
           videoRef.current.srcObject = mediaStream;
           
           // Wait for video to be ready before setting active state
           videoRef.current.onloadedmetadata = () => {
-            console.log('Video metadata loaded');
             videoRef.current?.play().then(() => {
-              console.log('Video playing, setting camera active');
               setIsCameraActive(true);
               setIsCameraLoading(false);
             }).catch((playError) => {
@@ -209,7 +213,6 @@ const Generate = () => {
         } else {
           attempts++;
           if (attempts < maxAttempts) {
-            console.log(`Video element not ready, attempt ${attempts}/${maxAttempts}`);
             setTimeout(assignStreamToVideo, 100); // Reduced delay since element should be available
           } else {
             throw new Error('Video element not available after multiple attempts');
@@ -271,26 +274,25 @@ const Generate = () => {
       return;
     }
 
-    console.log('Capturing photo...', {
-      videoWidth: video.videoWidth,
-      videoHeight: video.videoHeight,
-      readyState: video.readyState
-    });
-
     // Set canvas dimensions to match video
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
 
-    // Draw the video frame to canvas (flip back if mirrored)
+    // Draw the video frame to canvas
     context.save();
-    context.scale(-1, 1); // Flip horizontally to undo mirror effect
-    context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    if (isUsingFrontCamera) {
+      // Flip horizontally to undo mirror effect for front camera
+      context.scale(-1, 1);
+      context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    } else {
+      // Draw normally for back camera
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
     context.restore();
 
     // Convert canvas to blob
     canvas.toBlob((blob) => {
       if (blob) {
-        console.log('Photo captured successfully, blob size:', blob.size);
         const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
         handleImageCapture(file);
         stopCamera();
@@ -330,12 +332,7 @@ const Generate = () => {
     if (showCamera && !isExtractingIngredients && !isCameraActive && !isCameraLoading && !cameraError) {
       // Small delay to ensure dialog is fully rendered
       const timer = setTimeout(() => {
-        console.log('Dialog opened, checking video element availability...');
-        if (videoRef.current) {
-          console.log('Video element is available on dialog open');
-        } else {
-          console.log('Video element not yet available, will try when camera starts');
-        }
+        // Check video element availability silently
       }, 100);
       
       return () => clearTimeout(timer);
@@ -378,20 +375,11 @@ const Generate = () => {
     setIsGeneratingImage(true);
     try {
       const prompt = `${generatedRecipe.title} - ${generatedRecipe.description}. Professional food photography, appetizing, high quality, well lit, restaurant style presentation`;
-      console.log('Manual image generation request with prompt:', prompt);
       
       const response = await recipeAPI.generateRecipeImage(prompt);
-      console.log('Manual image generation response:', response);
       
       if (response && response.url) {
-        console.log('Manual: Setting recipe image URL:', response.url);
         setRecipeImageUrl(response.url);
-        
-        // Test if URL is valid
-        const img = new Image();
-        img.onload = () => console.log('Manual: Image URL is valid and loadable');
-        img.onerror = (e) => console.error('Manual: Image URL failed to load:', e);
-        img.src = response.url;
         
         toast({
           title: 'Recipe Image Generated! 🖼️',
@@ -443,20 +431,11 @@ const Generate = () => {
       setIsGeneratingImage(true);
       try {
         const prompt = `${generatedRecipe.title} - ${generatedRecipe.description}. Professional food photography, appetizing, high quality, well lit, restaurant style presentation`;
-        console.log('Sending image generation request with prompt:', prompt);
         
         const response = await recipeAPI.generateRecipeImage(prompt);
-        console.log('Image generation response:', response);
         
         if (response && response.url) {
-          console.log('Setting recipe image URL:', response.url);
           setRecipeImageUrl(response.url);
-          
-          // Test if URL is valid
-          const img = new Image();
-          img.onload = () => console.log('Image URL is valid and loadable');
-          img.onerror = (e) => console.error('Image URL failed to load:', e);
-          img.src = response.url;
           
           toast({
             title: 'Recipe Image Generated! 🖼️',
@@ -501,31 +480,31 @@ const Generate = () => {
   return (
     <div className="min-h-screen bg-background pb-20 sm:pb-24">
       {/* Header */}
-      <div className="p-4 sm:p-6 bg-gradient-dark">
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-primary">
-              <AvatarFallback className="bg-primary text-primary-foreground text-sm sm:text-base">
+      <div className="p-3 sm:p-4 md:p-6 bg-gradient-dark">
+        <div className="flex items-center justify-between mb-3 sm:mb-4 md:mb-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Avatar className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 border-2 border-primary">
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm md:text-base">
                 {userName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
               <p className="text-xs sm:text-sm text-muted-foreground">{greeting}</p>
-              <h2 className="text-base sm:text-lg font-semibold">{userName}</h2>
+              <h2 className="text-sm sm:text-base md:text-lg font-semibold">{userName}</h2>
             </div>
           </div>
         </div>
 
-        <h1 className="text-xl sm:text-2xl font-bold mb-2">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-1 sm:mb-2">
           Recipe Collection
         </h1>
-        <p className="text-base sm:text-lg text-muted-foreground">
+        <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
           Browse dishes or create new ones
         </p>
       </div>
 
       {/* Main Content */}
-      <div className="p-4 sm:p-6 max-w-4xl mx-auto">
+      <div className="p-3 sm:p-4 md:p-6 max-w-4xl mx-auto w-full">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className={`grid w-full ${generatedRecipe ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <TabsTrigger value="generate" className="flex items-center gap-2 text-sm sm:text-base">
@@ -691,14 +670,14 @@ const Generate = () => {
                     )}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent className="w-[95vw] max-w-lg mx-auto">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                       <Camera className="w-5 h-5" />
                       {isExtractingIngredients ? 'Processing Image...' : 'Capture Ingredients'}
                     </DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4 max-h-[80vh] overflow-y-auto">
                     {isExtractingIngredients ? (
                       <div className="text-center py-8">
                         <div className="flex flex-col items-center justify-center space-y-4">
@@ -740,8 +719,10 @@ const Generate = () => {
                                 playsInline
                                 muted
                                 controls={false}
-                                className="w-full h-64 object-cover bg-black"
-                                style={{ transform: 'scaleX(-1)' }} // Mirror for selfie mode
+                                className="w-full h-64 sm:h-80 md:h-96 object-cover bg-black"
+                                style={{ 
+                                  transform: isUsingFrontCamera ? 'scaleX(-1)' : 'none' 
+                                }} // Only mirror for front camera
                               />
                               <div className="absolute inset-0 border-2 border-dashed border-white/50 rounded-lg pointer-events-none"></div>
                               
@@ -788,7 +769,7 @@ const Generate = () => {
                                   className="flex-1 py-3"
                                   size="lg"
                                 >
-                                  ❌ Cancel
+                                  Cancel
                                 </Button>
                               </div>
                             )}
@@ -802,21 +783,11 @@ const Generate = () => {
                               Use your camera to capture ingredients or upload an image from your gallery
                             </div>
                             
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                              <div className="text-xs text-blue-600 mb-2">🛠️ Debug Info</div>
-                              <div className="text-xs text-blue-700">
-                                Video Element: {videoRef.current ? '✅ Ready' : '❌ Not Available'}<br/>
-                                Dialog Open: {showCamera ? '✅ Yes' : '❌ No'}<br/>
-                                Camera Support: {navigator.mediaDevices ? '✅ Yes' : '❌ No'}
-                              </div>
-                            </div>
+                          
                             
                             <div className="grid grid-cols-1 gap-3">
                               <Button 
                                 onClick={() => {
-                                  console.log('Camera button clicked');
-                                  console.log('Video element available:', !!videoRef.current);
-                                  console.log('Dialog open:', showCamera);
                                   startCamera();
                                 }}
                                 disabled={isCameraLoading}
@@ -830,7 +801,7 @@ const Generate = () => {
                                 ) : (
                                   <>
                                     <Camera className="w-4 h-4 mr-2" />
-                                    📸 Open Camera
+                                    Open Camera
                                   </>
                                 )}
                               </Button>
@@ -842,7 +813,7 @@ const Generate = () => {
                                 disabled={isCameraLoading}
                               >
                                 <Upload className="w-4 h-4 mr-2" />
-                                📁 Upload from Gallery
+                                Upload from Gallery
                               </Button>
                             </div>
 

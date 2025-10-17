@@ -21,6 +21,11 @@ const RecipeDetail = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [checkedIngredients, setCheckedIngredients] = useState<boolean[]>([]);
+  
+  // Timer state
+  const [seconds, setSeconds] = useState(0);
+  const [minutes, setMinutes] = useState(0);
+  const [timerIntervalId, setTimerIntervalId] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -35,6 +40,43 @@ const RecipeDetail = () => {
       setCheckedIngredients(new Array(recipe.ingredients_cleaned.length).fill(false));
     }
   }, [recipe?.ingredients_cleaned]);
+
+  // Timer logic
+  useEffect(() => {
+    if (isPlaying && showCookingMode) {
+      const intervalId = setInterval(() => {
+        setSeconds(prevSeconds => {
+          if (prevSeconds === 59) {
+            setMinutes(prevMinutes => prevMinutes + 1);
+            return 0;
+          }
+          return prevSeconds + 1;
+        });
+      }, 1000);
+      
+      setTimerIntervalId(intervalId);
+      
+      return () => {
+        clearInterval(intervalId);
+      };
+    } else if (timerIntervalId) {
+      clearInterval(timerIntervalId);
+      setTimerIntervalId(null);
+    }
+  }, [isPlaying, showCookingMode]);
+
+  // Clean up timer when cooking mode closes
+  useEffect(() => {
+    if (!showCookingMode) {
+      if (timerIntervalId) {
+        clearInterval(timerIntervalId);
+        setTimerIntervalId(null);
+      }
+      setIsPlaying(false);
+      setSeconds(0);
+      setMinutes(0);
+    }
+  }, [showCookingMode, timerIntervalId]);
 
   const checkFavoriteStatus = async (recipeId: string) => {
     try {
@@ -163,7 +205,21 @@ const RecipeDetail = () => {
 
   const toggleTimer = () => {
     setIsPlaying(!isPlaying);
-    // In a real app, you'd implement timer logic here
+  };
+
+  const resetTimer = () => {
+    setIsPlaying(false);
+    setSeconds(0);
+    setMinutes(0);
+    if (timerIntervalId) {
+      clearInterval(timerIntervalId);
+      setTimerIntervalId(null);
+    }
+  };
+
+  // Format timer display
+  const formatTime = (mins: number, secs: number) => {
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Handle ingredient checkbox changes
@@ -475,19 +531,19 @@ const RecipeDetail = () => {
 
       {/* Cooking Mode Dialog */}
       <Dialog open={showCookingMode} onOpenChange={setShowCookingMode}>
-        <DialogContent className="max-w-lg mx-auto h-[85vh] flex flex-col bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200">
-          <DialogHeader className="pb-4">
-            <DialogTitle className="text-center text-xl font-bold text-orange-900">
+        <DialogContent className="w-[98vw] sm:w-[95vw] max-w-lg mx-auto h-[95vh] sm:h-[90vh] flex flex-col bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 p-2 sm:p-4 md:p-6 overflow-hidden">
+          <DialogHeader className="pb-2 sm:pb-3 md:pb-4 flex-shrink-0">
+            <DialogTitle className="text-center text-base sm:text-lg md:text-xl font-bold text-orange-900">
               🍳 Cooking Mode
             </DialogTitle>
-            <p className="text-center text-orange-700">
+            <p className="text-center text-xs sm:text-sm md:text-base text-orange-700">
               Step {currentStep + 1} of {getInstructionSteps(recipe?.instructions || '').length}
             </p>
           </DialogHeader>
 
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {/* Progress Bar */}
-            <div className="w-full bg-orange-200 rounded-full h-3 mb-6 shadow-inner">
+            <div className="w-full bg-orange-200 rounded-full h-2 sm:h-3 mb-4 sm:mb-6 shadow-inner">
               <div 
                 className="bg-gradient-to-r from-orange-500 to-orange-600 h-3 rounded-full transition-all duration-500 shadow-sm"
                 style={{ 
@@ -497,14 +553,14 @@ const RecipeDetail = () => {
             </div>
 
             {/* Current Step */}
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center px-6">
-                <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-8 rounded-full w-28 h-28 flex items-center justify-center mx-auto mb-6 shadow-lg">
-                  <ChefHat className="w-14 h-14 text-white" />
+            <div className="flex-1 flex items-center justify-center overflow-y-auto">
+              <div className="text-center px-3 sm:px-6 py-4">
+                <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-4 sm:p-8 rounded-full w-16 h-16 sm:w-28 sm:h-28 flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-lg">
+                  <ChefHat className="w-8 h-8 sm:w-14 sm:h-14 text-white" />
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-md border border-orange-200">
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border border-orange-200">
                   <p 
-                    className="text-lg leading-relaxed text-slate-700"
+                    className="text-sm sm:text-lg leading-relaxed text-slate-700"
                     dangerouslySetInnerHTML={{ 
                       __html: enhanceInstructionText(getInstructionSteps(recipe?.instructions || '')[currentStep]) 
                     }}
@@ -514,62 +570,76 @@ const RecipeDetail = () => {
             </div>
 
             {/* Timer Controls */}
-            <div className="flex items-center justify-center gap-6 mb-6 p-4 bg-white rounded-2xl shadow-md border border-orange-200">
+            <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4 sm:mb-6 p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl shadow-md border border-orange-200">
               <Button
                 variant="outline"
-                size="lg"
+                size="sm"
                 onClick={toggleTimer}
-                className="rounded-full w-14 h-14 p-0 border-2 border-orange-300 hover:border-orange-400 hover:bg-orange-50"
+                className="rounded-full w-10 h-10 sm:w-12 sm:h-12 p-0 border-2 border-orange-300 hover:border-orange-400 hover:bg-orange-50"
               >
                 {isPlaying ? (
-                  <Pause className="w-6 h-6 text-orange-600" />
+                  <Pause className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                 ) : (
-                  <Play className="w-6 h-6 text-orange-600" />
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                 )}
               </Button>
-              <div className="text-center">
-                <div className="text-3xl font-mono font-bold text-orange-900">00:00</div>
-                <div className="text-sm text-orange-600 font-medium">Timer</div>
+              <div className="text-center flex-1">
+                <div className="text-xl sm:text-2xl md:text-3xl font-mono font-bold text-orange-900">
+                  {formatTime(minutes, seconds)}
+                </div>
+                <div className="text-xs text-orange-600 font-medium">Timer</div>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetTimer}
+                className="rounded-full w-10 h-10 sm:w-12 sm:h-12 p-0 border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+              >
+                <span className="text-xs sm:text-sm font-bold text-gray-600">↻</span>
+              </Button>
             </div>
 
             {/* Navigation */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-md border border-orange-200">
+            <div className="flex justify-between items-center bg-white p-2 sm:p-3 md:p-4 rounded-xl sm:rounded-2xl shadow-md border border-orange-200 gap-1 sm:gap-2 flex-shrink-0">
               <Button
                 variant="outline"
                 onClick={prevStep}
                 disabled={currentStep === 0}
-                className="flex items-center gap-2 border-orange-300 text-orange-700 hover:bg-orange-50 disabled:opacity-50"
+                className="flex items-center gap-1 sm:gap-2 border-orange-300 text-orange-700 hover:bg-orange-50 disabled:opacity-50 text-xs sm:text-sm px-2 sm:px-3"
               >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
+                <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Previous</span>
+                <span className="sm:hidden">Prev</span>
               </Button>
 
-              <div className="text-sm text-orange-600 font-semibold bg-orange-100 px-4 py-2 rounded-full">
+              <div className="text-xs sm:text-sm text-orange-600 font-semibold bg-orange-100 px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-full whitespace-nowrap">
                 {currentStep + 1} / {getInstructionSteps(recipe?.instructions || '').length}
               </div>
 
               {currentStep < getInstructionSteps(recipe?.instructions || '').length - 1 ? (
                 <Button 
                   onClick={nextStep} 
-                  className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white shadow-md"
+                  className="flex items-center gap-1 sm:gap-2 bg-orange-500 hover:bg-orange-600 text-white shadow-md text-xs sm:text-sm px-2 sm:px-3"
                 >
-                  Next
-                  <ChevronRight className="w-4 h-4" />
+                  <span className="hidden sm:inline">Next</span>
+                  <span className="sm:hidden">Next</span>
+                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               ) : (
                 <Button 
                   onClick={() => {
                     setShowCookingMode(false);
+                    resetTimer();
                     toast({
                       title: 'Recipe Complete! 🎉',
                       description: 'Great job! Your dish is ready to serve.'
                     });
                   }}
-                  className="bg-green-600 hover:bg-green-700 flex items-center gap-2 shadow-md"
+                  className="bg-green-600 hover:bg-green-700 flex items-center gap-1 sm:gap-2 shadow-md text-xs sm:text-sm px-2 sm:px-3"
                 >
-                  Complete
-                  <ChefHat className="w-4 h-4" />
+                  <span className="hidden sm:inline">Complete</span>
+                  <span className="sm:hidden">Done</span>
+                  <ChefHat className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               )}
             </div>

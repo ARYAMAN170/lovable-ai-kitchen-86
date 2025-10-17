@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import BottomNav from '@/components/BottomNav';
@@ -93,6 +94,13 @@ const Home = () => {
     setPage(nextPage);
     loadRecipes(nextPage, false);
   }, [page, loadRecipes]);
+
+  // Sentinel ref to trigger infinite scroll
+  const sentinelRef = useIntersectionObserver(() => {
+    if (!loadingMore && hasMore && !isSearching) {
+      handleLoadMore();
+    }
+  }, { root: null, rootMargin: '300px', threshold: 0 });
 
   const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -306,17 +314,11 @@ const Home = () => {
           <>
             {/* Trending Carousel */}
             <section>
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <div className="mb-4 sm:mb-6">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">🔥 Trending on Stir</h3>
                   <p className="text-sm sm:text-base text-gray-600 hidden sm:block">What everyone's cooking this week</p>
                 </div>
-                <button 
-                  onClick={() => navigate('/favorites')}
-                  className="text-orange-600 hover:text-orange-700 font-medium transition-colors text-sm sm:text-base flex-shrink-0"
-                >
-                  View All →
-                </button>
               </div>
               
               <div className="flex overflow-x-auto space-x-4 sm:space-x-6 pb-4 scrollbar-hide">
@@ -328,17 +330,11 @@ const Home = () => {
 
             {/* Quick Meals Carousel */}
             <section>
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <div className="mb-4 sm:mb-6">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">⚡ Quick Weeknight Dinners</h3>
                   <p className="text-sm sm:text-base text-gray-600 hidden sm:block">Ready in 30 minutes or less</p>
                 </div>
-                <button 
-                  onClick={() => navigate('/favorites')}
-                  className="text-orange-600 hover:text-orange-700 font-medium transition-colors text-sm sm:text-base flex-shrink-0"
-                >
-                  View All →
-                </button>
               </div>
               
               <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
@@ -350,17 +346,11 @@ const Home = () => {
 
             {/* Recently Added Carousel */}
             <section>
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6">
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900">✨ Recently Added</h3>
                   <p className="text-gray-600">Fresh recipes from our community</p>
                 </div>
-                <button 
-                  onClick={() => navigate('/generate')}
-                  className="text-orange-600 hover:text-orange-700 font-medium transition-colors"
-                >
-                  View All →
-                </button>
               </div>
               
               <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
@@ -372,17 +362,11 @@ const Home = () => {
 
             {/* Vegetarian Carousel */}
             <section>
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6">
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900">🌱 Popular Vegetarian Options</h3>
                   <p className="text-gray-600">Plant-based favorites</p>
                 </div>
-                <button 
-                  onClick={() => navigate('/favorites')}
-                  className="text-orange-600 hover:text-orange-700 font-medium transition-colors"
-                >
-                  View All →
-                </button>
               </div>
               
               <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
@@ -394,17 +378,11 @@ const Home = () => {
 
             {/* Seasonal Carousel */}
             <section>
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6">
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900">🍂 Autumn Favorites</h3>
                   <p className="text-gray-600">Warm, comforting seasonal dishes</p>
                 </div>
-                <button 
-                  onClick={() => navigate('/favorites')}
-                  className="text-orange-600 hover:text-orange-700 font-medium transition-colors"
-                >
-                  View All →
-                </button>
               </div>
               
               <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
@@ -413,9 +391,57 @@ const Home = () => {
                 ))}
               </div>
             </section>
+
+            {/* Infinite Scroll Section */}
+            {recipes.length > 6 && (
+              <section className="mt-8">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">🍽️ More Delicious Recipes</h3>
+                  <p className="text-gray-600">Scroll down to discover more amazing dishes</p>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                  {recipes.slice(6).map((recipe, index) => (
+                    <RecipeCard key={`infinite-${recipe._id}`} recipe={recipe} index={index + 6} />
+                  ))}
+                </div>
+
+                {/* Load More Button/Indicator */}
+                {hasMore && (
+                  <div className="flex justify-center mt-6 sm:mt-8">
+                    {loadingMore ? (
+                      <div className="flex items-center gap-3 text-gray-600">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
+                        <span>Loading more recipes...</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          const nextPage = page + 1;
+                          setPage(nextPage);
+                          loadRecipes(nextPage);
+                        }}
+                        className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-full font-medium transition-colors shadow-lg hover:shadow-xl transform hover:scale-105"
+                      >
+                        Load More Recipes
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {!hasMore && recipes.length > 6 && (
+                  <div className="text-center mt-6 sm:mt-8 text-gray-500">
+                    <p>🎉 You've seen all our amazing recipes!</p>
+                  </div>
+                )}
+              </section>
+            )}
           </>
         )}
       </div>
+
+      {/* Sentinel element for infinite scroll */}
+      <div ref={sentinelRef as any} className="h-2 w-full" />
 
       <BottomNav />
     </div>
