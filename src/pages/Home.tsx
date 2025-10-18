@@ -148,6 +148,32 @@ const Home = () => {
   const userName = user?.name || 'Chef';
   const greeting = 'Good morning';
 
+  // Show server loading message when initially loading recipes
+  if (recipesLoading && recipes.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-600 mx-auto mb-6"></div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Starting up Stir...</h2>
+          <div className="space-y-3">
+            <p className="text-gray-600 text-lg">
+              🚀 Waking up our servers...
+            </p>
+            <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg">
+              <p className="text-orange-800 text-sm">
+                <strong>Please wait ~50 seconds</strong> - Our free tier server is starting up. 
+                This only happens on the first visit and makes everything faster afterward!
+              </p>
+            </div>
+            <p className="text-gray-500 text-sm">
+              Thank you for your patience ⏰
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <style>{`
